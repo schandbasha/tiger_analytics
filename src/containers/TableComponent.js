@@ -1,9 +1,10 @@
 import React from "react"
-import { useSelector } from "react-redux"
 import { Link } from "react-router-dom"
 import { Modal, Button, Form } from "semantic-ui-react"
 
 const TableComponent = ({
+    columns,
+    rows,
     isOpen,
     handleChange,
     setSelectedProductForEdit,
@@ -12,32 +13,25 @@ const TableComponent = ({
     handleTextFields,
     updateProductDetails,
 }) => {
-    const products = useSelector((state) => state.allProducts.products)
-
     return (
         <div className="table-section">
             <table className="ui celled fixed single line table">
                 <thead>
                     <tr>
-                        <th>Store Id</th>
-                        <th>SKU</th>
-                        <th>Product Name</th>
-                        <th>Price</th>
-                        <th>Date</th>
-                        <th></th>
+                        {columns && columns.map((col) => <th>{col.name}</th>)}
                     </tr>
                 </thead>
                 <tbody>
-                    {products.length > 0 ? (
-                        products.map((product) => {
-                            const { id, title, price, category } = product
+                    {rows.length > 0 ? (
+                        rows.map((product, index) => {
+                            console.log(product["Store Id"], "product")
                             return (
-                                <tr key={id}>
-                                    <td>{id}</td>
-                                    <td>{title}</td>
-                                    <td>{category} </td>
-                                    <td>{price} </td>
-                                    <td>10/02/2023</td>
+                                <tr key={product["Store Id"]}>
+                                    <td>{product["Store Id"]}</td>
+                                    <td>{product["SKU"]}</td>
+                                    <td>{product["Product Name"]}</td>
+                                    <td>{product["Price"]} </td>
+                                    <td>{product["Date"]} </td>
                                     <td>
                                         <span
                                             className="icon-class"
@@ -48,15 +42,18 @@ const TableComponent = ({
                                                 )
                                                 setProductDetails({
                                                     ...product,
-                                                    title: product.title,
-                                                    price: product.price,
-                                                    category: product.category,
+                                                    ["Product Name"]:
+                                                        product["Product Name"],
+                                                    ["Price"]: product["Price"],
+                                                    ["SKU"]: product["SKU"],
                                                 })
                                             }}
                                         >
                                             <i className="edit icon" />
                                         </span>
-                                        <Link to={`/list/${id}`}>
+                                        <Link
+                                            to={`/list/${product["Store Id"]}`}
+                                        >
                                             <span className="icon-class">
                                                 <i
                                                     className="eye icon"
@@ -81,23 +78,23 @@ const TableComponent = ({
                     <Form>
                         <Form.Input
                             label="SKU"
-                            value={productDetails.title}
+                            value={productDetails["SKU"]}
                             onChange={(e) =>
-                                handleTextFields("title", e.target.value)
+                                handleTextFields("SKU", e.target.value)
                             }
                         />
                         <Form.Input
                             label="Product Name"
-                            value={productDetails.category}
+                            value={productDetails["Product Name"]}
                             onChange={(e) =>
-                                handleTextFields("category", e.target.value)
+                                handleTextFields("Product Name", e.target.value)
                             }
                         />
                         <Form.Input
                             label="Price"
-                            value={productDetails.price}
+                            value={productDetails["Price"]}
                             onChange={(e) =>
-                                handleTextFields("price", e.target.value)
+                                handleTextFields("Price", e.target.value)
                             }
                         />
                         <Button onClick={updateProductDetails}>Save</Button>

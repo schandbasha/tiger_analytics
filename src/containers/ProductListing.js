@@ -1,39 +1,22 @@
-import React, { useEffect, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { setProducts } from "../redux/actions/productsActions"
+import React, { useState } from "react"
 import TableComponent from "./TableComponent"
 
-const ProductPage = () => {
-    const products = useSelector((state) => state.allProducts.products)
-    const dispatch = useDispatch()
-
+const ProductPage = ({ columns, rows, setRows, originalData }) => {
     const [searchText, setSearchText] = useState("")
-    const [originalProducts, setOriginalProducts] = useState([])
     const [isEditModalShown, setIsEditModalShown] = useState(false)
     const [selectedProductForEdit, setSelectedProductForEdit] = useState({})
     const [productDetails, setProductDetails] = useState({})
-
-    const fetchProducts = async () => {
-        const response = await fetch("https://fakestoreapi.com/products")
-        const data = await response.json()
-        dispatch(setProducts(data))
-        setOriginalProducts(data)
-    }
 
     const handleTextFields = (key, value) => {
         setProductDetails({ ...productDetails, [key]: value })
     }
 
-    useEffect(() => {
-        fetchProducts()
-    }, [])
-
     const updateProductDetails = () => {
-        products.map((item) => {
-            if (item.id === productDetails.id) {
-                item.price = productDetails.price
-                item.title = productDetails.title
-                item.category = productDetails.category
+        rows.map((item) => {
+            if (item["Store Id"] === productDetails["Store Id"]) {
+                item["SKU"] = productDetails["SKU"]
+                item["Price"] = productDetails["Price"]
+                item["Product Name"] = productDetails["Product Name"]
             }
             return item
         })
@@ -43,15 +26,15 @@ const ProductPage = () => {
     const handleSearch = (text) => {
         setSearchText(text)
         if (text !== "") {
-            const filteredData = products.filter((item) => {
+            const filteredData = rows.filter((item) => {
                 return Object.values(item)
                     .join("")
                     .toLowerCase()
                     .includes(text.toLowerCase())
             })
-            dispatch(setProducts(filteredData))
+            setRows(filteredData)
         } else {
-            dispatch(setProducts(originalProducts))
+            setRows(originalData)
         }
     }
 
@@ -72,6 +55,8 @@ const ProductPage = () => {
                     <div className="results"></div>
                 </div>
                 <TableComponent
+                    columns={columns}
+                    rows={rows}
                     isOpen={isEditModalShown}
                     handleChange={setIsEditModalShown}
                     selectedProductForEdit={selectedProductForEdit}

@@ -1,104 +1,126 @@
 import React, { useState } from "react"
-import axios from "axios"
-import { Button, Tab, Form, Icon, Progress } from "semantic-ui-react"
-import { Link } from "react-router-dom"
-
-const MockAdapter = require("axios-mock-adapter")
-const mock = new MockAdapter(axios)
-
-mock.onPost("/file/upload/enpoint").reply(200)
+import { Button, Tab, Form } from "semantic-ui-react"
+import * as XLSX from "xlsx"
+import ProductListing from "./ProductListing"
 
 const UploadComponent = () => {
-    const [statusCode, setStatusCode] = useState("")
     const [file, setFile] = useState(null)
     const [fileName, setFileName] = useState("")
+    const [columns, setColumns] = useState([])
+    const [data, setData] = useState([])
+    const [originalData, setOriginalData] = useState([])
+
+    // process CSV data
+    const processData = (dataString) => {
+        const dataStringLines = dataString.split(/\r\n|\n/)
+        const headers = dataStringLines[0].split(
+            /,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/
+        )
+
+        const list = []
+        for (let i = 1; i < dataStringLines.length; i++) {
+            const row = dataStringLines[i].split(
+                /,(?![^"]*"(?:(?:[^"]*"){2})*[^"]*$)/
+            )
+            if (headers && row.length == headers.length) {
+                const obj = {}
+                for (let j = 0; j < headers.length; j++) {
+                    let d = row[j]
+                    if (d.length > 0) {
+                        if (d[0] == '"') d = d.substring(1, d.length - 1)
+                        if (d[d.length - 1] == '"')
+                            d = d.substring(d.length - 2, 1)
+                    }
+                    if (headers[j]) {
+                        obj[headers[j]] = d
+                    }
+                }
+
+                // remove the blank rows
+                if (Object.values(obj).filter((x) => x).length > 0) {
+                    list.push(obj)
+                }
+            }
+        }
+
+        // prepare columns list from headers
+        const columns = headers.map((c) => ({
+            name: c,
+            selector: c,
+        }))
+
+        setData(list)
+        setOriginalData(list)
+        setColumns(columns)
+    }
 
     const fileChange = (e) => {
         setFile(e.target.files[0])
         setFileName(e.target.files[0].name)
-    }
-
-    const fileUpload = async (file) => {
-        const formData = new FormData()
-        formData.append("file", file)
-        try {
-            axios.post("/file/upload/enpoint").then((response) => {
-                setStatusCode(response.status)
-            })
-        } catch (error) {
-            console.error(Error(`Error uploading file ${error.message}`))
+        const file = e.target.files[0]
+        const reader = new FileReader()
+        reader.onload = (evt) => {
+            /* Parse data */
+            const bstr = evt.target.result
+            const wb = XLSX.read(bstr, { type: "binary" })
+            /* Get first worksheet */
+            const wsname = wb.SheetNames[0]
+            const ws = wb.Sheets[wsname]
+            /* Convert array of arrays */
+            const data = XLSX.utils.sheet_to_csv(ws, { header: 1 })
+            processData(data)
         }
-    }
-
-    const onFormSubmit = (e) => {
-        e.preventDefault() // Stop form submit
-        fileUpload(file)
+        reader.readAsBinaryString(file)
     }
 
     const panes = [
         {
             render: () => (
-                <Tab.Pane>
-                    <Form onSubmit={onFormSubmit}>
-                        <Form.Field>
-                            <label>File input & upload </label>
-                            <Button
-                                as="label"
-                                htmlFor="file"
-                                type="button"
-                                animated="fade"
-                            >
-                                <Button.Content visible>
-                                    <Icon name="file" />
-                                </Button.Content>
-                                <Button.Content hidden>
-                                    Choose a File
-                                </Button.Content>
-                            </Button>
-                            <input
-                                type="file"
-                                id="file"
-                                hidden
-                                onChange={fileChange}
-                            />
-                            <Form.Input
-                                fluid
-                                label="File Chosen: "
-                                placeholder="Use the above bar to browse your file system"
-                                readOnly
-                                value={fileName}
-                            />
-                            <Link to="/list">
-                                <Button
-                                    style={{ marginTop: "20px" }}
-                                    type="submit"
-                                >
-                                    Upload
-                                </Button>
-                            </Link>
-                            {statusCode && statusCode === 200 ? (
-                                <Progress
-                                    style={{ marginTop: "20px" }}
-                                    percent={100}
-                                    success
-                                    progress
-                                >
-                                    File Upload Success
-                                </Progress>
-                            ) : statusCode && statusCode === 500 ? (
-                                <Progress
-                                    style={{ marginTop: "20px" }}
-                                    percent={100}
-                                    error
-                                    active
-                                    progress
-                                >
-                                    File Upload Failed
-                                </Progress>
-                            ) : null}
-                        </Form.Field>
-                    </Form>
-                </Tab.Pane>
+                <>
+                    <Tab.Pane>
+                        <Form>
+                            <Form.Field>
+                                <label>File input & upload </label>
+                                <div className="upload-section">
+                                    <Button
+                                        as="label"
+                                        htmlFor="file"
+                                        type="button"
+                                    >
+                                        Choose a File
+                                    </Button>
+                                    <input
+                                        type="file"
+                                        id="file"
+                                        accept=".csv,.xlsx,.xls"
+                                        hidden
+                                        onChange={fileChange}
+                                    />
+                                    <Form.Input
+                                        fluid
+                                        placeholder="Use the above bar to browse your file system"
+                                        readOnly
+                                        value={fileName}
+                                    />
+                                </div>
+                            </Form.Field>
+                        </Form>
+                    </Tab.Pane>
+                    {file ? (
+                        <ProductListing
+                            columns={columns}
+                            rows={data}
+                            setRows={setData}
+                            originalData={originalData}
+                            setOriginalData={setOriginalData}
+                        />
+                    ) : (
+                        <div className="ui grid container">
+                            No Data available here. Please select a .csv file to
+                            view the data{" "}
+                        </div>
+                    )}
+                </>
             ),
         },
     ]

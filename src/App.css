@@ -105,6 +105,11 @@
   cursor: pointer;
   margin-left: 10px;
 }
+.upload-section{
+  justify-content: flex-start;
+    align-items: baseline;
+    display: flex;
+}
 .ui.input{
   width: 420px !important;
 }
